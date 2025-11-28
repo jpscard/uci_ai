@@ -13,3 +13,4 @@ ultralytics
 opencv-python
 yt_dlp
 Pillow
+lap
