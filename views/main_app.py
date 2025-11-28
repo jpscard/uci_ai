@@ -156,7 +156,7 @@ def main_app():
                 if st.button("Analisar Vídeo da Lista", key='analisar_lista_vid', type="primary"):
                     if selected_video:
                         with st.spinner("Analisando..."):
-                            detections_data = helper.process_stored_video(confidence, model, selected_video, roi_coords=roi_coords_to_pass, counting_direction=counting_direction, line_position_percent=line_position_percent)
+                            detections_data = helper.process_stored_video(confidence, model, selected_video, roi_coords=roi_coords_to_pass, counting_direction=counting_direction, line_position_percent=line_position_percent, trail_length=trail_length)
                     else:
                         st.warning("Por favor, selecione um vídeo para análise.")
             
@@ -166,7 +166,7 @@ def main_app():
                     if uploaded_videos:
                         progress_bar = st.progress(0, text="Iniciando análise...")
                         status_text = st.empty()
-                        detections_data = helper.process_batch_videos(uploaded_videos, model, confidence, progress_bar, status_text, roi_coords_to_pass, counting_direction, line_position_percent)
+                        detections_data = helper.process_batch_videos(uploaded_videos, model, confidence, progress_bar, status_text, roi_coords_to_pass, counting_direction, line_position_percent, trail_length=trail_length)
                     else:
                         st.warning("Por favor, carregue ao menos um vídeo para análise.")
     
@@ -214,7 +214,8 @@ def main_app():
                         roi_coords_to_pass,
                         st.session_state.track_history,
                         counting_direction,
-                        line_position_percent
+                        line_position_percent,
+                        trail_length=trail_length
                     )
                     
                     st.session_state.webcam_detections_data.extend(detected_classes)
@@ -258,7 +259,7 @@ def main_app():
                         stream_url = helper.get_youtube_stream_url(source_youtube)
                         if stream_url:
                             vid_cap = cv2.VideoCapture(stream_url)
-                            detections_data = helper.process_video_stream(vid_cap, model, confidence, source_name=source_youtube, roi_coords=roi_coords_to_pass, counting_direction=counting_direction, line_position_percent=line_position_percent)
+                            detections_data = helper.process_video_stream(vid_cap, model, confidence, source_name=source_youtube, roi_coords=roi_coords_to_pass, counting_direction=counting_direction, line_position_percent=line_position_percent, trail_length=trail_length)
                         else:
                             st.error("Não foi possível processar a URL do YouTube.")
                 else:

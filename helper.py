@@ -348,7 +348,7 @@ def create_graphs_in_memory(detections_data):
         graph_images['pie_chart'] = str(pie_path)
 
     status_counts = df['Status'].value_counts()
-    plt.figure(figsize=(8, 5)); sns.barplot(x=status_counts.index, y=status_counts.values, palette="rocket")
+    plt.figure(figsize=(8, 5)); sns.barplot(x=status_counts.index, y=status_counts.values, hue=status_counts.index, palette="rocket", legend=False)
     plt.title("Análise de Status (Reciclável vs. Nenhum item)", fontsize=16); plt.ylabel("Contagem", fontsize=14)
     status_path = settings.OUTPUT_DIR / "analise_status.png"
     plt.savefig(status_path); plt.close()
