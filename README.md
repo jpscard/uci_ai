@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Ucí AI - Análise de Materiais Recicláveis com IA
 
 Ucí AI (do Nhengatu, onde 'Ucí' significa 'Limpar') é uma aplicação web desenvolvida com Streamlit que utiliza um modelo de detecção de objetos (YOLO) para identificar materiais recicláveis (garrafas, latas, etc.) em imagens e vídeos.
