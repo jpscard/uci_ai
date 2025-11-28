@@ -8,7 +8,7 @@ A aplicação oferece uma interface interativa para que os usuários possam real
 
 ## 🔗 Links Úteis
 - **Repositório GitHub:** [https://github.com/jpscard/uci_ai/tree/main](https://github.com/jpscard/uci_ai/tree/main)
-- **Aplicação Streamlit:** [https://uciaiv1.streamlit.app/](https://uciaiv1.streamlit.app/)
+- **Aplicação Streamlit:** [https://uciaiv1.streamlit.app/](https://uciaiv2.streamlit.app/)
 
 ## 🗺️ Fluxograma da Arquitetura
 
