@@ -36,6 +36,7 @@ def main_app():
         roi_coords_to_pass = None
         counting_direction = None
         line_position_percent = None
+        trail_length = None
 
         if enable_counting:
             st.header("Configuração da Área de Contagem")
@@ -52,6 +53,8 @@ def main_app():
             
             line_position_percent = st.slider("Posição da Linha de Contagem (%)", 0, 100, 50, 
                                               help="Posição da linha dentro da área. 0% é o topo/esquerda, 100% é a base/direita.")
+
+            trail_length = st.slider("Comprimento do Rastro", 5, 100, 30, help="Número de frames para o rastro do objeto.")
 
             # Definir limites horizontais fixos
             roi_x_start_fixed = 10
