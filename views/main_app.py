@@ -12,6 +12,11 @@ import helper
 def main_app():
     """A aplicação principal de Análise de Materiais Recicláveis."""
 
+    # Clean up the output directory
+    for file in settings.OUTPUT_DIR.glob('*'):
+        if file.is_file():
+            file.unlink()
+
     # --- Barra Lateral (Sidebar) ---
     with st.sidebar:
         st.header(f"Bem-vindo, {st.session_state.get('user_name', 'Usuário')}!")
@@ -48,7 +53,7 @@ def main_app():
             st.markdown("Um item será contado ao cruzar a linha **dentro da área verde** na direção escolhida.")
             
             counting_direction = st.selectbox("Direção da Contagem", 
-                                              ("De baixo para cima", "De cima para baixo", 
+                                              ("De cima para baixo", "De baixo para cima",  
                                                "Da esquerda para a direita", "Da direita para a esquerda"))
             
             line_position_percent = st.slider("Posição da Linha de Contagem (%)", 0, 100, 50, 
@@ -135,10 +140,17 @@ def main_app():
                         with st.spinner("Analisando..."):
                             detections_data, display_images = helper.process_uploaded_images(source_imgs, model, confidence)
                         st.subheader("Resultados da Análise")
-                        for item in display_images:
+                        for i, item in enumerate(display_images):
                             col1, col2 = st.columns(2)
                             with col1: st.image(item['original'], caption='Original', width='stretch')
                             with col2: st.image(item['detected'], caption='Detectado', width='stretch')
+                            
+                            # Add download button
+                            image_path = detections_data[i].get('image_path')
+                            if image_path and Path(image_path).exists():
+                                with open(image_path, "rb") as f:
+                                    st.download_button(f"Download {Path(image_path).name}", f, file_name=Path(image_path).name)
+
                             st.markdown("---")
                     else:
                         st.warning("Por favor, carregue ao menos uma imagem para análise.")
@@ -167,6 +179,12 @@ def main_app():
                         progress_bar = st.progress(0, text="Iniciando análise...")
                         status_text = st.empty()
                         detections_data = helper.process_batch_videos(uploaded_videos, model, confidence, progress_bar, status_text, roi_coords_to_pass, counting_direction, line_position_percent, trail_length=trail_length)
+                        if detections_data:
+                            st.subheader("Vídeos Analisados")
+                            for item in detections_data:
+                                if 'video_path' in item and Path(item['video_path']).exists():
+                                    with open(item['video_path'], "rb") as f:
+                                        st.download_button(f"Download {item['Fonte']}", f, file_name=Path(item['video_path']).name)
                     else:
                         st.warning("Por favor, carregue ao menos um vídeo para análise.")
     

@@ -69,6 +69,11 @@ def process_uploaded_images(source_imgs, model, confidence):
         res = model.predict(img_pil, conf=confidence)
         boxes = res[0].boxes
         res_plotted = res[0].plot()[:, :, ::-1]
+        
+        # Save the processed image
+        output_image_path = str(settings.OUTPUT_DIR / f"{Path(source_image.name).stem if hasattr(source_image, 'name') else f'image_{i}'}_analyzed.png")
+        PIL.Image.fromarray(res_plotted).save(output_image_path)
+
         processed_images_display.append({'original': img_pil, 'detected': res_plotted})
         
         classes = [int(box.cls[0]) for box in boxes]
@@ -86,7 +91,8 @@ def process_uploaded_images(source_imgs, model, confidence):
             'Itens': len(classes),
             'Classes': detected_class_names,
             'Pontos': score,
-            'Status': status
+            'Status': status,
+            'image_path': output_image_path
         })
     return detections_data, processed_images_display
 
@@ -145,7 +151,7 @@ def process_video_stream(vid_cap, model, confidence, source_name='Vídeo Analisa
     }]
     return detections_data
 
-def process_video_stream_for_batch(vid_cap, model, confidence, roi_coords=None, counting_direction=None, line_position_percent=None, trail_length=30):
+def process_video_stream_for_batch(vid_cap, model, confidence, roi_coords=None, counting_direction=None, line_position_percent=None, trail_length=30, output_video_writer=None):
     """
     Versão modificada que não exibe frames, apenas processa e retorna os dados.
     Ideal para análise em lote, para não poluir a tela.
@@ -160,17 +166,21 @@ def process_video_stream_for_batch(vid_cap, model, confidence, roi_coords=None, 
             break
 
         if roi_coords and counting_direction and line_position_percent is not None:
-            _, detected_classes, new_counted_ids, new_track_history = process_video_frame(
-                image, model, confidence, counted_ids, roi_coords, track_history, counting_direction, line_position_percent, display=False, trail_length=trail_length
+            res_plotted, detected_classes, new_counted_ids, new_track_history = process_video_frame(
+                image, model, confidence, counted_ids, roi_coords, track_history, counting_direction, line_position_percent, display=True, trail_length=trail_length
             )
             counted_ids = new_counted_ids
             track_history = new_track_history
             all_detected_classes.extend(detected_classes)
         else:
             res = model.predict(image, conf=confidence, verbose=False)
+            res_plotted = res[0].plot()
             boxes = res[0].boxes
             frame_classes = [int(box.cls[0]) for box in boxes]
             all_detected_classes.extend(frame_classes)
+        
+        if output_video_writer:
+            output_video_writer.write(res_plotted)
 
     vid_cap.release()
     
@@ -203,10 +213,21 @@ def process_batch_videos(uploaded_videos, model, confidence, progress_bar, statu
         if temp_video_path:
             try:
                 vid_cap = cv2.VideoCapture(temp_video_path)
-                video_detections = process_video_stream_for_batch(vid_cap, model, confidence, roi_coords, counting_direction, line_position_percent, trail_length=trail_length)
+                # Create a VideoWriter object
+                fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+                fps = int(vid_cap.get(cv2.CAP_PROP_FPS))
+                width = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                height = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                output_video_path = str(settings.OUTPUT_DIR / f"{Path(video_file.name).stem}_analyzed.mp4")
+                output_video_writer = cv2.VideoWriter(output_video_path, fourcc, fps, (width, height))
+                
+                video_detections = process_video_stream_for_batch(vid_cap, model, confidence, roi_coords, counting_direction, line_position_percent, trail_length=trail_length, output_video_writer=output_video_writer)
                 if video_detections:
                     video_detections[0]['Fonte'] = video_file.name
+                    video_detections[0]['video_path'] = output_video_path
                     batch_detections_data.extend(video_detections)
+
+                output_video_writer.release()
             except Exception as e:
                 st.error(f"Não foi possível processar o vídeo {video_file.name}. Erro: {e}")
             finally:
@@ -249,24 +270,20 @@ def process_video_frame(image, model, confidence, counted_ids, roi_coords, track
 
     res = model.track(image, conf=confidence, persist=True, tracker="bytetrack.yaml", verbose=False)
     
-    if display:
-        res_plotted = res[0].plot()
-    else:
-        res_plotted = image.copy()
+    res_plotted = res[0].plot()
 
-    if display:
-        # Desenha a ROI
-        cv2.rectangle(res_plotted, (roi_x1, roi_y1), (roi_x2, roi_y2), (0, 255, 0), 2)
-        cv2.putText(res_plotted, "Area de Contagem", (roi_x1, roi_y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+    # Desenha a ROI
+    cv2.rectangle(res_plotted, (roi_x1, roi_y1), (roi_x2, roi_y2), (0, 255, 0), 2)
+    cv2.putText(res_plotted, "Area de Contagem", (roi_x1, roi_y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
-        # Lógica da Linha de Contagem
-        is_horizontal = "cima" in counting_direction
-        if is_horizontal:
-            line_y = roi_y1 + int((roi_y2 - roi_y1) * line_position_percent / 100)
-            cv2.line(res_plotted, (roi_x1, line_y), (roi_x2, line_y), (255, 0, 0), 2)
-        else: # Vertical
-            line_x = roi_x1 + int((roi_x2 - roi_x1) * line_position_percent / 100)
-            cv2.line(res_plotted, (line_x, roi_y1), (line_x, roi_y2), (255, 0, 0), 2)
+    # Lógica da Linha de Contagem
+    is_horizontal = "cima" in counting_direction
+    if is_horizontal:
+        line_y = roi_y1 + int((roi_y2 - roi_y1) * line_position_percent / 100)
+        cv2.line(res_plotted, (roi_x1, line_y), (roi_x2, line_y), (255, 0, 0), 2)
+    else: # Vertical
+        line_x = roi_x1 + int((roi_x2 - roi_x1) * line_position_percent / 100)
+        cv2.line(res_plotted, (line_x, roi_y1), (line_x, roi_y2), (255, 0, 0), 2)
 
     detected_classes = []
     if res[0].boxes.id is not None:
@@ -286,11 +303,10 @@ def process_video_frame(image, model, confidence, counted_ids, roi_coords, track
                 track_history[track_id].pop(0) # Remove o ponto mais antigo
 
             # Desenha o ponto central
-            if display:
-                cv2.circle(res_plotted, (center_x, center_y), 5, (0, 255, 0), -1)
+            cv2.circle(res_plotted, (center_x, center_y), 5, (0, 255, 0), -1)
 
             # Desenha o rastro
-            if display and len(track_history[track_id]) > 1:
+            if len(track_history[track_id]) > 1:
                 cv2.polylines(res_plotted, [np.array(track_history[track_id], np.int32)], False, (0, 255, 255), 2)
 
 
@@ -317,12 +333,10 @@ def process_video_frame(image, model, confidence, counted_ids, roi_coords, track
                     if crossed and track_id not in counted_ids:
                         counted_ids.add(track_id)
                         detected_classes.append(cls)
-                        if display:
-                            cv2.circle(res_plotted, (center_x, center_y), 5, (0, 0, 255), -1)
+                        cv2.circle(res_plotted, (center_x, center_y), 5, (0, 0, 255), -1)
 
-    if display:
-        count_text = f"Itens Contados: {len(counted_ids)}"
-        cv2.putText(res_plotted, count_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+    count_text = f"Itens Contados: {len(counted_ids)}"
+    cv2.putText(res_plotted, count_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
     
     return res_plotted, detected_classes, counted_ids, track_history
 
