@@ -176,7 +176,7 @@ def welcome_screen():
     team_members = [
         {"name": "Felipe Rafael dos Santos Barbosa", "email": "rafaelt.ibarbosa@gmail.com", "image": "assets/img/felipe.jpg"},
         {"name": "João Paulo da Silva Cardoso", "email": "jpscardoso@ufpa.br", "image": "assets/img/jpc.jpg"},
-        {"name": "Victor Amazonas Viegas Ferreira", "email": "viegasdeveloper@gmail.com", "image": "https://fpoimg.com/150x150?text=Member"}
+        {"name": "Victor Amazonas Viegas Ferreira", "email": "viegasdeveloper@gmail.com", "image": "assets/img/victor.png"}
     ]
 
     # Exibir membros da equipe em um grid

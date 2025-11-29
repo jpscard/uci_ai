@@ -195,6 +195,12 @@ def main_app():
             if st.session_state.webcam_running:
                 st.info("Análise da webcam em andamento... Itens serão contados ao passar pela 'Área de Contagem'.")
                 vid_cap = cv2.VideoCapture(settings.WEBCAM_PATH)
+
+                if not vid_cap.isOpened():
+                    st.error("Não foi possível abrir a webcam. Verifique se ela está conectada e não está sendo usada por outro aplicativo.")
+                    st.session_state.webcam_running = False
+                    st.rerun()
+
                 col_vid1, col_vid2 = st.columns(2)
                 st_frame1 = col_vid1.empty()
                 st_frame2 = col_vid2.empty()
